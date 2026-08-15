@@ -8,32 +8,27 @@ NC_UID="${NC_UID:-1000}"
 
 show_help() {
     cat <<EOF
-System Shell Netcat Command Sender (v${SYSNC_VERSION}) - Android 9 (API 28) optimized
-=======================================================================================
-
+System Shell Netcat Command Sender (v${SYSNC_VERSION}) - Android 9 (API 28)
 Usage: sysnc [OPTIONS]
 
 Options:
-  -c, --command CMD     Send a single command (quote it if it contains spaces)
-  -s, --setup           Setup netcat server (system shell via zygote injection)
-      --uid UID         Specify UID for setup (must be >= 1000, default: ${NC_UID})
+  -c, --command CMD     Send a single command
+  -s, --setup           Setup netcat server (zygote injection)
+      --uid UID         UID for setup (>=1000, default: ${NC_UID})
   -k, --kill            Kill the running netcat server
-      --host HOST       Server host (default: ${NC_HOST}, env: NC_HOST)
-      --port PORT       Server port (default: ${NC_PORT}, env: NC_PORT)
+      --host HOST       Server host (default: ${NC_HOST})
+      --port PORT       Server port (default: ${NC_PORT})
   -v, --version         Show version
-  -h, --help            Show this help message
-  (no args)             Interactive connection to server
+  -h, --help            Show this help
+  (no args)             Interactive connection
 
 Examples:
-  sysnc                          # Interactive mode
-  sysnc -c "ls -la"              # Send a single command
-  sysnc -s                       # Setup server with default UID (${NC_UID})
-  sysnc -s --uid 1000            # Setup server with explicit UID
-  sysnc -k                       # Kill the running server
+  sysnc
+  sysnc -c "ls -la"
+  sysnc -s --uid 1000
+  sysnc -k
   sysnc --host 10.0.0.5 --port 4444 -c "id"
-  cat script.sh | sysnc          # Pipe a script and close connection
-
-For system shell setup, ensure rish (Shizuku) is installed and accessible.
+  cat script.sh | sysnc
 EOF
 }
 
@@ -78,7 +73,7 @@ connect_interactive() {
         generate_shell_profile
         cat
     } | nc "$NC_HOST" "$NC_PORT" || die "Failed to connect to $NC_HOST:$NC_PORT" \
-        "Make sure the netcat server is running and accessible. Run 'sysnc -h' for more info."
+        "Make sure the netcat server is running and accessible."
 }
 
 zygote_injection() {
