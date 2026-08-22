@@ -33,7 +33,7 @@ sysnc installer
 Usage: install.sh [OPTIONS]
 
 Options:
-  -u, --uninstall   Remove sysnc, rish and rish_shizuku.dex and exit
+  -u, --uninstall   Remove sysnc, rish and rish_shizuku.dex symlinks and exit
   -h, --help        Show this help message
 
 This script must be run inside Termux on Android.
@@ -115,101 +115,57 @@ install_sysnc() {
     print_success "sysnc installed to $target"
 }
 
-install_rish_files() {
+create_rish_symlinks() {
     local target_rish="$INSTALL_DIR/$RISH_NAME"
     local target_dex="$INSTALL_DIR/$RISH_DEX_NAME"
 
-    print_status "Installing rish and $RISH_DEX_NAME from local files..."
+    print_status "Creating symbolic links for rish and $RISH_DEX_NAME from local files..."
 
+    # Check source files
     if [ ! -f "$RISH_SOURCE" ]; then
         print_error "rish not found at: $RISH_SOURCE"
         print_error "Place the rish file in the same directory as this installer and retry."
         exit 1
     fi
-
     if [ ! -r "$RISH_SOURCE" ]; then
         print_error "rish exists but is not readable: $RISH_SOURCE"
         exit 1
     fi
-
     if [ ! -f "$RISH_DEX_SOURCE" ]; then
         print_error "$RISH_DEX_NAME not found at: $RISH_DEX_SOURCE"
         print_error "Place $RISH_DEX_NAME in the same directory as this installer and retry."
-        print_error "rish requires $RISH_DEX_NAME to be present alongside it to function."
         exit 1
     fi
-
     if [ ! -r "$RISH_DEX_SOURCE" ]; then
         print_error "$RISH_DEX_NAME exists but is not readable: $RISH_DEX_SOURCE"
         exit 1
     fi
 
-    if [ -e "$target_rish" ]; then
-        print_warning "Existing $target_rish will be overwritten"
+    # Ensure rish is executable
+    chmod +x "$RISH_SOURCE" || {
+        print_error "Failed to make rish executable: $RISH_SOURCE"
+        exit 1
+    }
+
+    # Remove old targets if they exist (files or symlinks)
+    if [ -e "$target_rish" ] || [ -L "$target_rish" ]; then
+        rm -f "$target_rish"
+        print_warning "Removed existing $target_rish"
+    fi
+    if [ -e "$target_dex" ] || [ -L "$target_dex" ]; then
+        rm -f "$target_dex"
+        print_warning "Removed existing $target_dex"
     fi
 
-    if [ -e "$target_dex" ]; then
-        print_warning "Existing $target_dex will be overwritten"
-    fi
+    # Create symlinks (using absolute paths)
+    ln -s "$RISH_SOURCE" "$target_rish"
+    ln -s "$RISH_DEX_SOURCE" "$target_dex"
 
-    install -m 755 "$RISH_SOURCE" "$target_rish"
-    install -m 644 "$RISH_DEX_SOURCE" "$target_dex"
+    print_success "Symbolic link created: $target_rish -> $RISH_SOURCE"
+    print_success "Symbolic link created: $target_dex -> $RISH_DEX_SOURCE"
 
-    print_success "rish installed to $target_rish"
-    print_success "$RISH_DEX_NAME installed to $target_dex"
-}
-
-register_rish_command() {
-    local target_rish="$INSTALL_DIR/$RISH_NAME"
-    local target_dex="$INSTALL_DIR/$RISH_DEX_NAME"
-
-    print_status "Registering rish as a termux command..."
-
-    case ":$PATH:" in
-        *":$INSTALL_DIR:"*)
-            ;;
-        *)
-            export PATH="$INSTALL_DIR:$PATH"
-            print_warning "$INSTALL_DIR was not in PATH; added for this session"
-            ;;
-    esac
-
+    # Refresh command hash
     hash -r 2>/dev/null || true
-
-    if [ ! -x "$target_rish" ]; then
-        print_error "rish is not executable at $target_rish"
-        exit 1
-    fi
-
-    if [ ! -f "$target_dex" ]; then
-        print_error "$RISH_DEX_NAME missing at $target_dex"
-        print_error "rish cannot run without $RISH_DEX_NAME in the same directory."
-        exit 1
-    fi
-
-    local resolved
-    resolved=$(command -v "$RISH_NAME" 2>/dev/null || true)
-
-    if [ -z "$resolved" ]; then
-        print_error "Failed to register rish command; not resolvable via PATH"
-        exit 1
-    fi
-
-    if [ "$resolved" != "$target_rish" ]; then
-        print_warning "rish resolves to $resolved (not $target_rish)"
-        print_warning "Another version may be shadowing the freshly installed one."
-        return
-    fi
-
-    local resolved_dir
-    resolved_dir="$(cd "$(dirname "$resolved")" && pwd)"
-
-    if [ ! -f "$resolved_dir/$RISH_DEX_NAME" ]; then
-        print_error "$RISH_DEX_NAME not found next to resolved rish at $resolved_dir"
-        exit 1
-    fi
-
-    print_success "rish command registered; you can now run it as: $RISH_NAME"
 }
 
 verify_installation() {
@@ -235,6 +191,16 @@ verify_installation() {
         found_rish=$(command -v "$RISH_NAME")
         if [ "$found_rish" = "$INSTALL_DIR/$RISH_NAME" ]; then
             print_success "$RISH_NAME is on PATH at $found_rish"
+            # Check if it's a symlink and point to expected source
+            if [ -L "$found_rish" ]; then
+                local link_target
+                link_target=$(readlink "$found_rish")
+                if [ "$link_target" = "$RISH_SOURCE" ]; then
+                    print_success "Symbolic link points to correct source: $RISH_SOURCE"
+                else
+                    print_warning "Symbolic link points to $link_target, expected $RISH_SOURCE"
+                fi
+            fi
         else
             print_warning "$RISH_NAME resolves to $found_rish (not $INSTALL_DIR/$RISH_NAME)"
             print_warning "Another version may be shadowing the freshly installed one."
@@ -245,8 +211,18 @@ verify_installation() {
         exit 1
     fi
 
-    if [ -f "$INSTALL_DIR/$RISH_DEX_NAME" ]; then
+    if [ -f "$INSTALL_DIR/$RISH_DEX_NAME" ] || [ -L "$INSTALL_DIR/$RISH_DEX_NAME" ]; then
         print_success "$RISH_DEX_NAME present at $INSTALL_DIR/$RISH_DEX_NAME"
+        # Check symlink target if it's a link
+        if [ -L "$INSTALL_DIR/$RISH_DEX_NAME" ]; then
+            local dex_link_target
+            dex_link_target=$(readlink "$INSTALL_DIR/$RISH_DEX_NAME")
+            if [ "$dex_link_target" = "$RISH_DEX_SOURCE" ]; then
+                print_success "Symbolic link points to correct source: $RISH_DEX_SOURCE"
+            else
+                print_warning "Symbolic link points to $dex_link_target, expected $RISH_DEX_SOURCE"
+            fi
+        fi
     else
         print_error "$RISH_DEX_NAME not found at $INSTALL_DIR/$RISH_DEX_NAME"
         exit 1
@@ -260,28 +236,29 @@ uninstall_sysnc() {
     local target_rish="$INSTALL_DIR/$RISH_NAME"
     local target_dex="$INSTALL_DIR/$RISH_DEX_NAME"
 
-    if [ -e "$target_sysnc" ]; then
+    if [ -e "$target_sysnc" ] || [ -L "$target_sysnc" ]; then
         rm -f "$target_sysnc"
         print_success "Removed $target_sysnc"
     else
         print_warning "$target_sysnc not found; nothing to remove"
     fi
 
-    if [ -e "$target_rish" ]; then
+    if [ -e "$target_rish" ] || [ -L "$target_rish" ]; then
         rm -f "$target_rish"
-        print_success "Removed $target_rish"
+        print_success "Removed symbolic link $target_rish (source files remain)"
     else
         print_warning "$target_rish not found; nothing to remove"
     fi
 
-    if [ -e "$target_dex" ]; then
+    if [ -e "$target_dex" ] || [ -L "$target_dex" ]; then
         rm -f "$target_dex"
-        print_success "Removed $target_dex"
+        print_success "Removed symbolic link $target_dex (source files remain)"
     else
         print_warning "$target_dex not found; nothing to remove"
     fi
 
     hash -r 2>/dev/null || true
+    print_warning "Source files in $SCRIPT_DIR were not removed."
 }
 
 main() {
@@ -310,13 +287,12 @@ main() {
     require_termux
     install_dependencies
     install_sysnc
-    install_rish_files
-    register_rish_command
+    create_rish_symlinks
     verify_installation
 
     echo ""
     print_success "Installation complete. Run 'sysnc -h' to get started."
-    print_success "rish is also available as the 'rish' command."
+    print_success "rish is available as the 'rish' command (symbolic link to source)."
 }
 
 main "$@"
