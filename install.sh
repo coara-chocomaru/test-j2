@@ -1,12 +1,7 @@
 #!/bin/bash
-# shellcheck shell=bash
-#
-# sysnc Installation Script for Termux
-# Installs (or uninstalls) sysnc, rish and their dependencies in Termux.
 
 set -e
 
-# Colors for output (disabled when stdout is not a TTY).
 if [ -t 1 ]; then
     RED='\033[0;31m'
     GREEN='\033[0;32m'
@@ -21,7 +16,6 @@ SCRIPT_NAME="sysnc"
 SCRIPT_URL="https://github.com/coara-chocomaru/test-j2/raw/refs/heads/main/sysnc"
 RISH_NAME="rish"
 
-# Directory where this install script resides (rish is expected next to it).
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RISH_SOURCE="${SCRIPT_DIR}/${RISH_NAME}"
 
@@ -64,13 +58,11 @@ install_dependencies() {
     fi
 
     print_warning "netcat not found. Installing netcat-openbsd..."
-    # pkg update is best-effort: a transient network blip shouldn't abort install.
     pkg update -y || print_warning "pkg update failed; continuing with cached repo data"
     pkg install -y netcat-openbsd
     print_success "netcat installed"
 }
 
-# Validate that a downloaded file looks like the sysnc bash script.
 validate_script() {
     local file="$1"
     local first_line
@@ -142,13 +134,50 @@ install_rish() {
     fi
 
     install -m 755 "$RISH_SOURCE" "$target"
+    chmod +x "$target"
     print_success "rish installed to $target"
+}
+
+register_rish_command() {
+    local target="$INSTALL_DIR/$RISH_NAME"
+
+    print_status "Registering rish as a termux command..."
+
+    case ":$PATH:" in
+        *":$INSTALL_DIR:"*)
+            ;;
+        *)
+            export PATH="$INSTALL_DIR:$PATH"
+            print_warning "$INSTALL_DIR was not in PATH; added for this session"
+            ;;
+    esac
+
+    hash -r 2>/dev/null || true
+
+    if [ ! -x "$target" ]; then
+        print_error "rish is not executable at $target"
+        exit 1
+    fi
+
+    local resolved
+    resolved=$(command -v "$RISH_NAME" 2>/dev/null || true)
+
+    if [ -z "$resolved" ]; then
+        print_error "Failed to register rish command; not resolvable via PATH"
+        exit 1
+    fi
+
+    if [ "$resolved" != "$target" ]; then
+        print_warning "rish resolves to $resolved (not $target)"
+        print_warning "Another version may be shadowing the freshly installed one."
+    fi
+
+    print_success "rish command registered; you can now run it as: $RISH_NAME"
 }
 
 verify_installation() {
     print_status "Verifying installation..."
 
-    # --- sysnc ---
     if command -v "$SCRIPT_NAME" &>/dev/null; then
         local found
         found=$(command -v "$SCRIPT_NAME")
@@ -164,7 +193,6 @@ verify_installation() {
         exit 1
     fi
 
-    # --- rish ---
     if command -v "$RISH_NAME" &>/dev/null; then
         local found_rish
         found_rish=$(command -v "$RISH_NAME")
@@ -200,6 +228,8 @@ uninstall_sysnc() {
     else
         print_warning "$target_rish not found; nothing to remove"
     fi
+
+    hash -r 2>/dev/null || true
 }
 
 main() {
@@ -229,6 +259,7 @@ main() {
     install_dependencies
     install_sysnc
     install_rish
+    register_rish_command
     verify_installation
 
     echo ""
