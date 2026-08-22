@@ -15,9 +15,11 @@ fi
 SCRIPT_NAME="sysnc"
 SCRIPT_URL="https://github.com/coara-chocomaru/test-j2/raw/refs/heads/main/sysnc"
 RISH_NAME="rish"
+RISH_DEX_NAME="rish_shizuku.dex"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RISH_SOURCE="${SCRIPT_DIR}/${RISH_NAME}"
+RISH_DEX_SOURCE="${SCRIPT_DIR}/${RISH_DEX_NAME}"
 
 print_status()  { echo -e "${BLUE}[INFO]${NC} $1"; }
 print_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
@@ -31,11 +33,11 @@ sysnc installer
 Usage: install.sh [OPTIONS]
 
 Options:
-  -u, --uninstall   Remove sysnc and rish and exit
+  -u, --uninstall   Remove sysnc, rish and rish_shizuku.dex and exit
   -h, --help        Show this help message
 
 This script must be run inside Termux on Android.
-rish must be present in the same directory as this installer.
+rish and rish_shizuku.dex must be present in the same directory as this installer.
 EOF
 }
 
@@ -113,10 +115,11 @@ install_sysnc() {
     print_success "sysnc installed to $target"
 }
 
-install_rish() {
-    local target="$INSTALL_DIR/$RISH_NAME"
+install_rish_files() {
+    local target_rish="$INSTALL_DIR/$RISH_NAME"
+    local target_dex="$INSTALL_DIR/$RISH_DEX_NAME"
 
-    print_status "Installing rish from local file..."
+    print_status "Installing rish and $RISH_DEX_NAME from local files..."
 
     if [ ! -f "$RISH_SOURCE" ]; then
         print_error "rish not found at: $RISH_SOURCE"
@@ -129,17 +132,36 @@ install_rish() {
         exit 1
     fi
 
-    if [ -e "$target" ]; then
-        print_warning "Existing $target will be overwritten"
+    if [ ! -f "$RISH_DEX_SOURCE" ]; then
+        print_error "$RISH_DEX_NAME not found at: $RISH_DEX_SOURCE"
+        print_error "Place $RISH_DEX_NAME in the same directory as this installer and retry."
+        print_error "rish requires $RISH_DEX_NAME to be present alongside it to function."
+        exit 1
     fi
 
-    install -m 755 "$RISH_SOURCE" "$target"
-    chmod +x "$target"
-    print_success "rish installed to $target"
+    if [ ! -r "$RISH_DEX_SOURCE" ]; then
+        print_error "$RISH_DEX_NAME exists but is not readable: $RISH_DEX_SOURCE"
+        exit 1
+    fi
+
+    if [ -e "$target_rish" ]; then
+        print_warning "Existing $target_rish will be overwritten"
+    fi
+
+    if [ -e "$target_dex" ]; then
+        print_warning "Existing $target_dex will be overwritten"
+    fi
+
+    install -m 755 "$RISH_SOURCE" "$target_rish"
+    install -m 644 "$RISH_DEX_SOURCE" "$target_dex"
+
+    print_success "rish installed to $target_rish"
+    print_success "$RISH_DEX_NAME installed to $target_dex"
 }
 
 register_rish_command() {
-    local target="$INSTALL_DIR/$RISH_NAME"
+    local target_rish="$INSTALL_DIR/$RISH_NAME"
+    local target_dex="$INSTALL_DIR/$RISH_DEX_NAME"
 
     print_status "Registering rish as a termux command..."
 
@@ -154,8 +176,14 @@ register_rish_command() {
 
     hash -r 2>/dev/null || true
 
-    if [ ! -x "$target" ]; then
-        print_error "rish is not executable at $target"
+    if [ ! -x "$target_rish" ]; then
+        print_error "rish is not executable at $target_rish"
+        exit 1
+    fi
+
+    if [ ! -f "$target_dex" ]; then
+        print_error "$RISH_DEX_NAME missing at $target_dex"
+        print_error "rish cannot run without $RISH_DEX_NAME in the same directory."
         exit 1
     fi
 
@@ -167,9 +195,18 @@ register_rish_command() {
         exit 1
     fi
 
-    if [ "$resolved" != "$target" ]; then
-        print_warning "rish resolves to $resolved (not $target)"
+    if [ "$resolved" != "$target_rish" ]; then
+        print_warning "rish resolves to $resolved (not $target_rish)"
         print_warning "Another version may be shadowing the freshly installed one."
+        return
+    fi
+
+    local resolved_dir
+    resolved_dir="$(cd "$(dirname "$resolved")" && pwd)"
+
+    if [ ! -f "$resolved_dir/$RISH_DEX_NAME" ]; then
+        print_error "$RISH_DEX_NAME not found next to resolved rish at $resolved_dir"
+        exit 1
     fi
 
     print_success "rish command registered; you can now run it as: $RISH_NAME"
@@ -207,6 +244,13 @@ verify_installation() {
         print_error "Try restarting Termux or check that $INSTALL_DIR is on \$PATH."
         exit 1
     fi
+
+    if [ -f "$INSTALL_DIR/$RISH_DEX_NAME" ]; then
+        print_success "$RISH_DEX_NAME present at $INSTALL_DIR/$RISH_DEX_NAME"
+    else
+        print_error "$RISH_DEX_NAME not found at $INSTALL_DIR/$RISH_DEX_NAME"
+        exit 1
+    fi
 }
 
 uninstall_sysnc() {
@@ -214,6 +258,7 @@ uninstall_sysnc() {
 
     local target_sysnc="$INSTALL_DIR/$SCRIPT_NAME"
     local target_rish="$INSTALL_DIR/$RISH_NAME"
+    local target_dex="$INSTALL_DIR/$RISH_DEX_NAME"
 
     if [ -e "$target_sysnc" ]; then
         rm -f "$target_sysnc"
@@ -227,6 +272,13 @@ uninstall_sysnc() {
         print_success "Removed $target_rish"
     else
         print_warning "$target_rish not found; nothing to remove"
+    fi
+
+    if [ -e "$target_dex" ]; then
+        rm -f "$target_dex"
+        print_success "Removed $target_dex"
+    else
+        print_warning "$target_dex not found; nothing to remove"
     fi
 
     hash -r 2>/dev/null || true
@@ -258,7 +310,7 @@ main() {
     require_termux
     install_dependencies
     install_sysnc
-    install_rish
+    install_rish_files
     register_rish_command
     verify_installation
 
