@@ -175,6 +175,8 @@ setup_server() {
             echo ""
             echo "# 4) Clean up hidden-API exemptions"
             clean_up_setting
+            sleep 2
+            toybox nc localhost 1234
         } >&2
         exit 1
     fi
