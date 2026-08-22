@@ -126,7 +126,7 @@ nc
 %s
 -L
 /system/bin/sh
--l
+-l;
 --instruction-set=arm
 --app-data-dir=/data/
 --package-name=com.android.settings
