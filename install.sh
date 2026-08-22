@@ -2,7 +2,7 @@
 # shellcheck shell=bash
 #
 # sysnc Installation Script for Termux
-# Installs (or uninstalls) sysnc and its dependencies in Termux.
+# Installs (or uninstalls) sysnc, rish and their dependencies in Termux.
 
 set -e
 
@@ -19,6 +19,11 @@ fi
 
 SCRIPT_NAME="sysnc"
 SCRIPT_URL="https://github.com/coara-chocomaru/test-j2/raw/refs/heads/main/sysnc"
+RISH_NAME="rish"
+
+# Directory where this install script resides (rish is expected next to it).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+RISH_SOURCE="${SCRIPT_DIR}/${RISH_NAME}"
 
 print_status()  { echo -e "${BLUE}[INFO]${NC} $1"; }
 print_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
@@ -32,10 +37,11 @@ sysnc installer
 Usage: install.sh [OPTIONS]
 
 Options:
-  -u, --uninstall   Remove sysnc and exit
+  -u, --uninstall   Remove sysnc and rish and exit
   -h, --help        Show this help message
 
 This script must be run inside Termux on Android.
+rish must be present in the same directory as this installer.
 EOF
 }
 
@@ -115,8 +121,34 @@ install_sysnc() {
     print_success "sysnc installed to $target"
 }
 
+install_rish() {
+    local target="$INSTALL_DIR/$RISH_NAME"
+
+    print_status "Installing rish from local file..."
+
+    if [ ! -f "$RISH_SOURCE" ]; then
+        print_error "rish not found at: $RISH_SOURCE"
+        print_error "Place the rish file in the same directory as this installer and retry."
+        exit 1
+    fi
+
+    if [ ! -r "$RISH_SOURCE" ]; then
+        print_error "rish exists but is not readable: $RISH_SOURCE"
+        exit 1
+    fi
+
+    if [ -e "$target" ]; then
+        print_warning "Existing $target will be overwritten"
+    fi
+
+    install -m 755 "$RISH_SOURCE" "$target"
+    print_success "rish installed to $target"
+}
+
 verify_installation() {
     print_status "Verifying installation..."
+
+    # --- sysnc ---
     if command -v "$SCRIPT_NAME" &>/dev/null; then
         local found
         found=$(command -v "$SCRIPT_NAME")
@@ -131,16 +163,42 @@ verify_installation() {
         print_error "Try restarting Termux or check that $INSTALL_DIR is on \$PATH."
         exit 1
     fi
+
+    # --- rish ---
+    if command -v "$RISH_NAME" &>/dev/null; then
+        local found_rish
+        found_rish=$(command -v "$RISH_NAME")
+        if [ "$found_rish" = "$INSTALL_DIR/$RISH_NAME" ]; then
+            print_success "$RISH_NAME is on PATH at $found_rish"
+        else
+            print_warning "$RISH_NAME resolves to $found_rish (not $INSTALL_DIR/$RISH_NAME)"
+            print_warning "Another version may be shadowing the freshly installed one."
+        fi
+    else
+        print_error "$RISH_NAME not found on PATH"
+        print_error "Try restarting Termux or check that $INSTALL_DIR is on \$PATH."
+        exit 1
+    fi
 }
 
 uninstall_sysnc() {
     require_termux
-    local target="$INSTALL_DIR/$SCRIPT_NAME"
-    if [ -e "$target" ]; then
-        rm -f "$target"
-        print_success "Removed $target"
+
+    local target_sysnc="$INSTALL_DIR/$SCRIPT_NAME"
+    local target_rish="$INSTALL_DIR/$RISH_NAME"
+
+    if [ -e "$target_sysnc" ]; then
+        rm -f "$target_sysnc"
+        print_success "Removed $target_sysnc"
     else
-        print_warning "$target not found; nothing to remove"
+        print_warning "$target_sysnc not found; nothing to remove"
+    fi
+
+    if [ -e "$target_rish" ]; then
+        rm -f "$target_rish"
+        print_success "Removed $target_rish"
+    else
+        print_warning "$target_rish not found; nothing to remove"
     fi
 }
 
@@ -170,10 +228,12 @@ main() {
     require_termux
     install_dependencies
     install_sysnc
+    install_rish
     verify_installation
 
     echo ""
     print_success "Installation complete. Run 'sysnc -h' to get started."
+    print_success "rish is also available as the 'rish' command."
 }
 
 main "$@"
