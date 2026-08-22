@@ -9,7 +9,7 @@
 readonly SYSNC_VERSION="0.2.0"
 
 # Configuration (override via env vars or --host/--port/--uid flags).
-NC_HOST="${NC_HOST:-localhost}"
+NC_HOST="${NC_HOST:-127.0.0.1}"
 NC_PORT="${NC_PORT:-1234}"
 NC_UID="${NC_UID:-1000}"
 
