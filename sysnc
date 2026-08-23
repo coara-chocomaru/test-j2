@@ -195,7 +195,7 @@ setup_server() {
 
     # Give the Settings app time to re-read the injected hidden-API exemption
     # before we wipe it; otherwise the zygote spawn can race the cleanup.
-    sleep 2
+    sleep 6
 
     echo "Step 4: Cleaning up hidden API exemptions..."
     rish -c "$(clean_up_setting)" || die "Failed to clean up hidden API exemptions"
