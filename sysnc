@@ -108,8 +108,8 @@ zygote_injection() {
     printf 'settings put global hidden_api_blacklist_exemptions "LClass1;->method1(
 10
 --runtime-args
---setuid=0
---setgid=0
+--setuid=1000
+--setgid=1000
 --runtime-flags=2049
 --mount-external-full
 --setgroups=3003
